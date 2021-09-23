@@ -2,12 +2,10 @@ import mss
 import mss.tools
 from pynput.mouse import Listener
 
-x1 = 0
-y1 = 0
-x2 = 0
-y2 = 0
+x1, y1, x2, y2 = 0, 0, 0, 0
 
 def on_click(x, y, button, pressed):
+    global x1, y1, x2, y2
     if pressed:
         x1 = x
         y1 = y
@@ -22,17 +20,16 @@ def on_click(x, y, button, pressed):
 with Listener(on_click=on_click) as listener:
     listener.join()
 
+left = min(x1, x2)
+right = max(x1, x2)
+top = min(y1, y2)
+lower = max(y1, y2)
+bbox = (left, top, right, lower)
+
 with mss.mss() as sct:
     # Use the 1st monitor
     monitor = sct.monitors[1]
-
-    # Capture a bbox using percent values
-    left = monitor["left"] + monitor["width"] * 5 // 100  # 5% from the left
-    top = monitor["top"] + monitor["height"] * 5 // 100  # 5% from the top
-    right = left + 400  # 400px width
-    lower = top + 400  # 400px height
-    bbox = (left, top, right, lower)
-
+    
     # Grab the picture
     # Using PIL would be something like:
     # im = ImageGrab(bbox=bbox)
