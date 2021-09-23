@@ -1,6 +1,9 @@
 import mss
 import mss.tools
 from pynput.mouse import Listener
+from PIL import Image
+import pytesseract
+import numpy
 
 x1, y1, x2, y2 = 0, 0, 0, 0
 
@@ -33,10 +36,10 @@ with mss.mss() as sct:
     # Grab the picture
     # Using PIL would be something like:
     # im = ImageGrab(bbox=bbox)
-    im = sct.grab(bbox)  # type: ignore
-
-    # Save it!
-    mss.tools.to_png(im.rgb, im.size, output="screenshot.png")
+    im = numpy.array(sct.grab(bbox), dtype=numpy.uint8)
+    im = numpy.flip(im[:, :, :3], 2)  # BGRA -> RGB conversion
+    text = pytesseract.image_to_string(im)
+    print(text)
 
 if __name__=="__main__":
     print("file is being run directly")
