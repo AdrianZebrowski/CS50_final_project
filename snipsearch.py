@@ -1,12 +1,12 @@
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PIL import ImageGrab
 import mss
 import mss.tools
 import pytesseract
 import numpy
 import webbrowser
 
+# TODO: Make the screenshotted image pop up in a screen (maybe in MainMenu?)
 
 class Snip():
     def __init__(self, start_point, end_point):
@@ -84,7 +84,8 @@ class TransparentOverlay(QtWidgets.QWidget):
         self.update()
         # print(self.end_point.x(), self.end_point.y())
 
-
+# TODO: Add checkboxes for Save, path box for save, Search, and a dropdown for search engines
+# TODO: Add keyboard shortcuts (CTRL+1 = snip, CTRL+2 = snip + save, CTRL+G = google, CTRL+W for wolfram, etc.)
 class MainMenu(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
