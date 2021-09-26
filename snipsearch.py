@@ -6,13 +6,16 @@ import pytesseract
 import numpy
 import webbrowser
 
-# TODO: Make the screenshotted image pop up in a screen (maybe in MainMenu?)
+# TODO: Attempt to import settings from a defaults file, and if there aren't then initialize the object as it currently is
+
 settings = {
     'save': False,
     'search': True,
     'save_path': '',
     'search_engine': 'Wolfram Alpha'
 }
+
+# TODO: Make the screenshotted image pop up in a screen (maybe in MainMenu?)
 
 class Snip():
     def __init__(self, start_point, end_point):
@@ -101,7 +104,7 @@ class TransparentOverlay(QtWidgets.QWidget):
         self.update()
         # print(self.end_point.x(), self.end_point.y())
 
-# TODO: Add checkboxes for Save, path box for save, Search, and a dropdown for search engines
+# TODO: Path box for save
 # TODO: Add keyboard shortcuts (CTRL+1 = snip, CTRL+2 = snip + save, CTRL+G = google, CTRL+W for wolfram, etc.)
 class MainMenu(QtWidgets.QWidget):
     def __init__(self):
@@ -169,3 +172,5 @@ def main():
  
 if __name__ == '__main__':
     main()
+
+# TODO: Package this in an installer and try it out on different operating systems
