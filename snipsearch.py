@@ -7,6 +7,12 @@ import numpy
 import webbrowser
 
 # TODO: Make the screenshotted image pop up in a screen (maybe in MainMenu?)
+settings = {
+    'save': False,
+    'search': True,
+    'save_path': '',
+    'search_engine': 'Wolfram Alpha'
+}
 
 class Snip():
     def __init__(self, start_point, end_point):
@@ -35,7 +41,6 @@ class Snip():
     def search_bing(self):
         url = "https://www.bing.com/search?q={}".format(self.ocr_text)
         webbrowser.open_new_tab(url)
-
     def search_yahoo(self):
         url = "https://search.yahoo.com/search?p={}".format(self.ocr_text)
         webbrowser.open_new_tab(url)
@@ -46,6 +51,7 @@ class Snip():
 
     def save(self):
         mss.tools.to_png(self.im.rgb, self.im.size, output="screenshot.png")
+        return self
 
 
 class TransparentOverlay(QtWidgets.QWidget):
@@ -70,7 +76,18 @@ class TransparentOverlay(QtWidgets.QWidget):
         # print(self.end_point.x(), self.end_point.y())
 
     def mouseReleaseEvent(self, event):
-        Snip(self.start_point, self.end_point).ocr().search_wolfram()
+        if settings['save'] == True:
+            Snip(self.start_point, self.end_point).save()
+        if settings['search'] == True:
+            if settings['search_engine'] == 'Google':
+                Snip(self.start_point, self.end_point).ocr().search_google()
+            if settings['search_engine'] == 'Bing':
+                Snip(self.start_point, self.end_point).ocr().search_bing()
+            if settings['search_engine'] == 'Yahoo':
+                Snip(self.start_point, self.end_point).ocr().search_yahoo()
+            if settings['search_engine'] == 'Wolfram Alpha':
+                Snip(self.start_point, self.end_point).ocr().search_wolfram()
+
         # Snip(self.start_point, self.end_point).save()
         # print("Mouse released.")
         # print(self.end_point.x(), self.end_point.y())
@@ -89,12 +106,57 @@ class TransparentOverlay(QtWidgets.QWidget):
 class MainMenu(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
+        self.save = False
+        self.save_path = ""
+        self.search = False
+        self.search_engine = ""
         QtWidgets.QApplication.restoreOverrideCursor()
         self.setGeometry(0, 0, 100, 50)
-        button = QtWidgets.QPushButton('Snip', self)
-        button.clicked.connect(self.on_pushButton_clicked)
- 
+        layout = QtWidgets.QHBoxLayout()
+
+        self.b1 = QtWidgets.QPushButton('Snip', self)
+        self.b1.clicked.connect(self.on_pushButton_clicked)
+        layout.addWidget(self.b1)
+
+        self.c1 = QtWidgets.QCheckBox("Save", self)
+        self.c1.setChecked(settings['save'])
+        layout.addWidget(self.c1)
+
+        self.c2 = QtWidgets.QCheckBox("Search", self)
+        self.c2.setChecked(settings['search'])
+        layout.addWidget(self.c2)
+
+        self.combo = QtWidgets.QComboBox(self)
+        self.combo.addItem("Google")
+        self.combo.addItem("Bing")
+        self.combo.addItem("Yahoo")
+        self.combo.addItem("Wolfram Alpha")
+        self.combo.setCurrentText(settings['search_engine'])
+        self.combo.activated[str].connect(self.dropdown_state)
+        layout.addWidget(self.combo)
+
+        self.setLayout(layout)
+        
+    def checkbox_state(self, c):
+        if c.text() == "Save":
+            if c.isChecked() == True:
+                settings['save'] = True
+            else:
+                settings['save'] = False
+
+        if c.text() == "Search":
+            if c.isChecked() == True:
+                settings['search'] = True
+            else:
+                settings['search'] = False
+
+    def dropdown_state(self, text):
+        print(text)
+        settings['search_engine'] = text
+  
     def on_pushButton_clicked(self):
+        self.checkbox_state(self.c2)
+        self.checkbox_state(self.c1)
         self.window = TransparentOverlay()
         self.window.show()
         self.hide()
