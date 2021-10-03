@@ -5,21 +5,34 @@ import mss.tools
 import pytesseract
 import numpy
 import webbrowser
+import json
 
-# TODO: Attempt to import settings from a defaults file, and if there aren't then initialize the object as it currently is
+def default_settings():
+    print("No last settings found. Using default settings...")
+    global settings
+    settings = {
+        'save': False,
+        'search': False,
+        'save_path': '',
+        'search_engine': 'Google'
+    }
 
-settings = {
-    'save': False,
-    'search': True,
-    'save_path': '',
-    'search_engine': 'Wolfram Alpha'
-}
+try:
+    with open('settings.json') as file:
+        try:
+            settings = json.load(file)
+            print("Loading last settings from file...")
+        except:
+            print("No last settings found. Using default settings...")
+            default_settings()
+except:
+    default_settings()
 
-# TODO: Make the screenshotted image pop up in a screen (maybe in MainMenu?)
+# TODO: Make the screenshotted image pop up in a screen (maybe in MainMenu?) EDIT: Wow this is hard as fuck to do for some stupid reason
 
-class Snip():
+class Snip(QtWidgets.QWidget):
     def __init__(self, start_point, end_point):
-
+        super().__init__()
         self.left = min(start_point.x(), end_point.x())
         self.right = max(start_point.x(), end_point.x())
         self.top = min(start_point.y(), end_point.y())
@@ -163,7 +176,13 @@ class MainMenu(QtWidgets.QWidget):
         self.window = TransparentOverlay()
         self.window.show()
         self.hide()
-   
+
+    def closeEvent(self, event):
+        print("Writing last settings to json file...")
+        with open('settings.json', 'w') as file:
+            json.dump(settings, file)
+        event.accept()
+
 def main():
     app = QtWidgets.QApplication(sys.argv)
     window = MainMenu()
