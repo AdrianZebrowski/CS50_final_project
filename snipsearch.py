@@ -40,7 +40,9 @@ class Snip(QtWidgets.QWidget):
         self.bbox = (self.left, self.top, self.right, self.lower)
 
         with mss.mss() as sct:
-            # TODO: Make this work with multiple monitors
+
+            # TODO: Make this work with multiple monitors if at all possible
+
             # Use the 1st monitor
             self.monitor = sct.monitors[1]
             self.im = sct.grab(self.bbox)
@@ -65,6 +67,8 @@ class Snip(QtWidgets.QWidget):
         url = "https://www.wolframalpha.com/input/?i={}".format(self.ocr_text)
         webbrowser.open_new_tab(url)
 
+    #TODO: Make this a little smarter by incrementing file name if a file with that name already exists - maybe use a callback?
+    
     def save(self):
         mss.tools.to_png(self.im.rgb, self.im.size, output=(settings['save_path'] + 'screenshot.png'))
         return self
@@ -77,7 +81,9 @@ class TransparentOverlay(QtWidgets.QWidget):
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.setWindowOpacity(0.1)
+
         # TODO: Set this up so it uses the window sizing
+
         screen_width = 1920
         screen_height = 1200
         self.setGeometry(0, 0, screen_width, screen_height)
@@ -117,15 +123,15 @@ class TransparentOverlay(QtWidgets.QWidget):
         self.update()
         # print(self.end_point.x(), self.end_point.y())
 
-# TODO: Path box for save
-# TODO: Add keyboard shortcuts (CTRL+1 = snip, CTRL+2 = snip + save, CTRL+G = google, CTRL+W for wolfram, etc.)
+# TODO: Add keyboard shortcuts (CTRL+S = snip, CTRL+V = snip + save, CTRL+G = google, CTRL+W for wolfram, etc. I can iron out the details later)
+
 class MainMenu(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.save = False
-        self.save_path = ""
-        self.search = False
-        self.search_engine = ""
+        #self.save = False
+        #self.save_path = ""
+        #self.search = False
+        #self.search_engine = ""
         QtWidgets.QApplication.restoreOverrideCursor()
         self.setGeometry(0, 0, 100, 50)
         layout = QtWidgets.QGridLayout()
@@ -136,6 +142,7 @@ class MainMenu(QtWidgets.QWidget):
 
         self.c1 = QtWidgets.QCheckBox("Save", self)
         self.c1.setChecked(settings['save'])
+        self.c1.stateChanged.connect(lambda: self.checkbox_state(self.c1))
         layout.addWidget(self.c1)
 
         self.b2 = QtWidgets.QPushButton('Browse', self)
@@ -147,10 +154,12 @@ class MainMenu(QtWidgets.QWidget):
             self.textbox.setPlaceholderText("Enter snip directory here...")
         else:
             self.textbox.setText('{}'.format(settings['save_path']))
+        self.textbox.textChanged[str].connect(self.textbox_state)
         layout.addWidget(self.textbox)
 
         self.c2 = QtWidgets.QCheckBox("Search", self)
         self.c2.setChecked(settings['search'])
+        self.c2.stateChanged.connect(lambda: self.checkbox_state(self.c2))
         layout.addWidget(self.c2)
 
         self.combo = QtWidgets.QComboBox(self)
@@ -178,7 +187,6 @@ class MainMenu(QtWidgets.QWidget):
                 settings['search'] = False
 
     def dropdown_state(self, text):
-        print(text)
         settings['search_engine'] = text
 
     def textbox_state(self):
@@ -190,9 +198,6 @@ class MainMenu(QtWidgets.QWidget):
         self.textbox.setText('{}'.format(self.folder_path))
   
     def on_b1_clicked(self):
-        self.checkbox_state(self.c2)
-        self.checkbox_state(self.c1)
-        self.textbox_state()
         self.window = TransparentOverlay()
         self.window.show()
         self.hide()
