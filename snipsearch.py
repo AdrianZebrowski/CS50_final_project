@@ -66,7 +66,7 @@ class Snip(QtWidgets.QWidget):
         webbrowser.open_new_tab(url)
 
     def save(self):
-        mss.tools.to_png(self.im.rgb, self.im.size, output="screenshot.png")
+        mss.tools.to_png(self.im.rgb, self.im.size, output=(settings['save_path'] + 'screenshot.png'))
         return self
 
 
@@ -128,15 +128,26 @@ class MainMenu(QtWidgets.QWidget):
         self.search_engine = ""
         QtWidgets.QApplication.restoreOverrideCursor()
         self.setGeometry(0, 0, 100, 50)
-        layout = QtWidgets.QHBoxLayout()
+        layout = QtWidgets.QGridLayout()
 
         self.b1 = QtWidgets.QPushButton('Snip', self)
-        self.b1.clicked.connect(self.on_pushButton_clicked)
+        self.b1.clicked.connect(self.on_b1_clicked)
         layout.addWidget(self.b1)
 
         self.c1 = QtWidgets.QCheckBox("Save", self)
         self.c1.setChecked(settings['save'])
         layout.addWidget(self.c1)
+
+        self.b2 = QtWidgets.QPushButton('Browse', self)
+        self.b2.clicked.connect(self.on_b2_clicked)
+        layout.addWidget(self.b2)
+
+        self.textbox = QtWidgets.QLineEdit(self)
+        if settings['save_path'] == '':
+            self.textbox.setPlaceholderText("Enter snip directory here...")
+        else:
+            self.textbox.setText('{}'.format(settings['save_path']))
+        layout.addWidget(self.textbox)
 
         self.c2 = QtWidgets.QCheckBox("Search", self)
         self.c2.setChecked(settings['search'])
@@ -169,10 +180,19 @@ class MainMenu(QtWidgets.QWidget):
     def dropdown_state(self, text):
         print(text)
         settings['search_engine'] = text
+
+    def textbox_state(self):
+        settings['save_path'] = self.textbox.text().rstrip("/") + "/"
+
+    def on_b2_clicked(self):
+        self.dialog = QtWidgets.QFileDialog()
+        self.folder_path = self.dialog.getExistingDirectory(None, "Select Folder")
+        self.textbox.setText('{}'.format(self.folder_path))
   
-    def on_pushButton_clicked(self):
+    def on_b1_clicked(self):
         self.checkbox_state(self.c2)
         self.checkbox_state(self.c1)
+        self.textbox_state()
         self.window = TransparentOverlay()
         self.window.show()
         self.hide()
