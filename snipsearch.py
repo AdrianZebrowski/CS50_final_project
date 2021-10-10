@@ -6,44 +6,16 @@ import pytesseract
 import numpy
 import webbrowser
 import json
+import datetime
 
-def default_settings():
-    print("No last settings found. Using default settings...")
-    global settings
-    settings = {
-        'save': False,
-        'search': False,
-        'save_path': '',
-        'search_engine': 'Google'
-    }
-
-try:
-    with open('settings.json') as file:
-        try:
-            settings = json.load(file)
-            print("Loading last settings from file...")
-        except:
-            print("No last settings found. Using default settings...")
-            default_settings()
-except:
-    default_settings()
-
-# TODO: Make the screenshotted image pop up in a screen (maybe in MainMenu?) EDIT: Wow this is hard as fuck to do for some stupid reason
 
 class Snip(QtWidgets.QWidget):
-    def __init__(self, start_point, end_point):
+    def __init__(self, bbox):
         super().__init__()
-        self.left = min(start_point.x(), end_point.x())
-        self.right = max(start_point.x(), end_point.x())
-        self.top = min(start_point.y(), end_point.y())
-        self.lower = max(start_point.y(), end_point.y())
-        self.bbox = (self.left, self.top, self.right, self.lower)
-
+        
+        self.bbox = bbox
         with mss.mss() as sct:
-
             # TODO: Make this work with multiple monitors if at all possible
-
-            # Use the 1st monitor
             self.monitor = sct.monitors[1]
             self.im = sct.grab(self.bbox)
 
@@ -59,6 +31,7 @@ class Snip(QtWidgets.QWidget):
     def search_bing(self):
         url = "https://www.bing.com/search?q={}".format(self.ocr_text)
         webbrowser.open_new_tab(url)
+
     def search_yahoo(self):
         url = "https://search.yahoo.com/search?p={}".format(self.ocr_text)
         webbrowser.open_new_tab(url)
@@ -66,11 +39,10 @@ class Snip(QtWidgets.QWidget):
     def search_wolfram(self):
         url = "https://www.wolframalpha.com/input/?i={}".format(self.ocr_text)
         webbrowser.open_new_tab(url)
-
-    #TODO: Make this a little smarter by incrementing file name if a file with that name already exists - maybe use a callback?
     
     def save(self):
-        mss.tools.to_png(self.im.rgb, self.im.size, output=(settings['save_path'] + 'screenshot.png'))
+        path = settings['save_path'] + 'screenshot_' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f") + '.png'
+        mss.tools.to_png(self.im.rgb, self.im.size, output=path)
         return self
 
 
@@ -80,15 +52,15 @@ class TransparentOverlay(QtWidgets.QWidget):
         QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CursorShape.CrossCursor))
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        self.setWindowOpacity(0.1)
-
-        # TODO: Set this up so it uses the window sizing
-
-        screen_width = 1920
-        screen_height = 1200
-        self.setGeometry(0, 0, screen_width, screen_height)
+        screen_geometry = QtWidgets.QDesktopWidget().screenGeometry()
+        self.setGeometry(0, 0, screen_geometry.width(), screen_geometry.height())
         self.end_point = QtCore.QPoint()
         self.start_point = QtCore.QPoint()
+        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+        self.left = 0
+        self.right = 1
+        self.top = 0
+        self.bottom = 1
 
     def mousePressEvent(self, event):
         # print("Mouse pressed.")
@@ -98,17 +70,18 @@ class TransparentOverlay(QtWidgets.QWidget):
         # print(self.end_point.x(), self.end_point.y())
 
     def mouseReleaseEvent(self, event):
+        self.bbox = (self.left, self.top, self.right, self.bottom)
         if settings['save'] == True:
-            Snip(self.start_point, self.end_point).save()
+            Snip(self.bbox).save()
         if settings['search'] == True:
             if settings['search_engine'] == 'Google':
-                Snip(self.start_point, self.end_point).ocr().search_google()
+                Snip(self.bbox).ocr().search_google()
             if settings['search_engine'] == 'Bing':
-                Snip(self.start_point, self.end_point).ocr().search_bing()
+                Snip(self.bbox).ocr().search_bing()
             if settings['search_engine'] == 'Yahoo':
-                Snip(self.start_point, self.end_point).ocr().search_yahoo()
+                Snip(self.bbox).ocr().search_yahoo()
             if settings['search_engine'] == 'Wolfram Alpha':
-                Snip(self.start_point, self.end_point).ocr().search_wolfram()
+                Snip(self.bbox).ocr().search_wolfram()
 
         # Snip(self.start_point, self.end_point).save()
         # print("Mouse released.")
@@ -121,17 +94,23 @@ class TransparentOverlay(QtWidgets.QWidget):
         # print("Mouse moved.")
         self.end_point = event.pos()
         self.update()
+        self.left = min(self.start_point.x(), self.end_point.x())
+        self.right = max(self.start_point.x(), self.end_point.x())
+        self.top = min(self.start_point.y(), self.end_point.y())
+        self.bottom = max(self.start_point.y(), self.end_point.y())
         # print(self.end_point.x(), self.end_point.y())
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        pen_width = 2
+        painter.setPen(QtGui.QPen(QtCore.Qt.red, pen_width, QtCore.Qt.SolidLine))
+        painter.drawRect(self.left - int(0.5 * pen_width), self.top - int(0.5 * pen_width), self.right - self.left + pen_width, self.bottom - self.top + pen_width)
 
 # TODO: Add keyboard shortcuts (CTRL+S = snip, CTRL+V = snip + save, CTRL+G = google, CTRL+W for wolfram, etc. I can iron out the details later)
 
 class MainMenu(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        #self.save = False
-        #self.save_path = ""
-        #self.search = False
-        #self.search_engine = ""
         QtWidgets.QApplication.restoreOverrideCursor()
         self.setGeometry(0, 0, 100, 50)
         layout = QtWidgets.QGridLayout()
@@ -209,6 +188,29 @@ class MainMenu(QtWidgets.QWidget):
         event.accept()
 
 def main():
+
+    def default_settings():
+        print("No last settings found. Using default settings...")
+        global settings
+        settings = {
+            'save': False,
+            'search': False,
+            'save_path': '',
+            'search_engine': 'Google'
+        }
+
+    try:
+        with open('settings.json') as file:
+            try:
+                global settings 
+                settings = json.load(file)
+                print("Loading last settings from file...")
+            except:
+                print("No last settings found. Using default settings...")
+                default_settings()
+    except:
+        default_settings()
+
     app = QtWidgets.QApplication(sys.argv)
     window = MainMenu()
     window.show()
