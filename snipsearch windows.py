@@ -18,12 +18,10 @@ def Screenshot(bbox):
         im = sct.grab(bbox)
         return im
 
-# Define a class called snip, which takes a screenshot when provided with a bounding box, and then does several functions with it depending on some settings
-class Snip(QtWidgets.QWidget):
-    def __init__(self, bbox):
-        # Initialize superclass so we have access to its methods
-        super().__init__()
-        self.im = Screenshot(bbox)
+# Define a class called snipfunctions, which takes an image object as input and then manipulates it in a few useful ways
+class SnipFunctions():
+    def __init__(self, im):
+        self.im = im
 
     # Define a function for ocr (optical character recognition) using pytesseract
     def ocr(self):
@@ -58,8 +56,16 @@ class Snip(QtWidgets.QWidget):
         mss.tools.to_png(self.im.rgb, self.im.size, output=self.path)
         return self
 
+    # Windows-specific clipboard functions
+    #TODO: Implement clipboard functions for OCR text and for png image, depending on global settings
+    def clip_image(self):
+        print("Clipped the image!")
+
+    def clip_text(self):
+        print("Clipped the text!")
+
 # Initialize a class to create a transparent overlay, on which I will draw selection boxes (like snipping tool in Windows)
-class TransparentOverlay(QtWidgets.QWidget):
+class SnippingOverlay(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         # Get that sweet cross cursor (again like snipping tool)
@@ -95,17 +101,26 @@ class TransparentOverlay(QtWidgets.QWidget):
     def mouseReleaseEvent(self, event):
         self.bbox = (self.left, self.top, self.right, self.bottom)
         self.setWindowOpacity(0)
+        self.im = Screenshot(self.bbox)
+
         if settings['save'] == True:
-            Snip(self.bbox).save()
+            SnipFunctions(self.im).save()
+        
+        # Windows-specific call to clipboard functions 
+        if settings['clipboard'] == "image":
+            SnipFunctions(self.im).clip_image()
+        if settings['clipboard'] == "text":
+            SnipFunctions(self.im).clip_text()
+
         if settings['search'] == True:
             if settings['search_engine'] == 'Google':
-                Snip(self.bbox).ocr().search_google()
+                SnipFunctions(self.im).ocr().search_google()
             if settings['search_engine'] == 'Bing':
-                Snip(self.bbox).ocr().search_bing()
+                SnipFunctions(self.im).ocr().search_bing()
             if settings['search_engine'] == 'Yahoo':
-                Snip(self.bbox).ocr().search_yahoo()
+                SnipFunctions(self.im).ocr().search_yahoo()
             if settings['search_engine'] == 'Wolfram Alpha':
-                Snip(self.bbox).ocr().search_wolfram()
+                SnipFunctions(self.im).ocr().search_wolfram()
 
         #print("Mouse released.")
         #print(self.end_point.x(), self.end_point.y())
@@ -187,6 +202,31 @@ class MainMenu(QtWidgets.QWidget):
         self.combo.activated[str].connect(self.dropdown_state)
         layout.addWidget(self.combo)
 
+        # Windows-specific controls for clipboard functionality
+        self.rlabel1 = QtWidgets.QLabel("Clipboard functionality:")
+
+        self.r1 = QtWidgets.QRadioButton("None")
+        self.r1.setChecked(settings['clipboard'] == 'none')
+        self.r1.toggled.connect(lambda: self.radiobox_state(self.r1))
+
+        self.r2 = QtWidgets.QRadioButton("OCR Text")
+        self.r2.setChecked(settings['clipboard'] == 'text')
+        self.r2.toggled.connect(lambda: self.radiobox_state(self.r2))
+
+        self.r3 = QtWidgets.QRadioButton("Image")
+        self.r3.setChecked(settings['clipboard'] == 'image')
+        self.r3.toggled.connect(lambda: self.radiobox_state(self.r3))
+
+        self.rgroup1 = QtWidgets.QButtonGroup()
+        self.rgroup1.addButton(self.r1)
+        self.rgroup1.addButton(self.r2)
+        self.rgroup1.addButton(self.r3)
+
+        layout.addWidget(self.rlabel1)
+        layout.addWidget(self.r1)
+        layout.addWidget(self.r2)
+        layout.addWidget(self.r3)
+
         self.setLayout(layout)
 
         # Keyboard shortcut to start snipping (just call the same function as clicking the snip button)
@@ -208,6 +248,17 @@ class MainMenu(QtWidgets.QWidget):
             else:
                 settings['search'] = False
 
+    def radiobox_state(self, r):
+        if r.text() == "OCR Text" and r.isChecked() == True:
+            settings['clipboard'] = "text"
+            #print(settings['clipboard'])
+        if r.text() == "Image" and r.isChecked() == True:
+            settings['clipboard'] = "image"
+            #print(settings['clipboard'])
+        if r.text() == "None" and r.isChecked() == True:
+            settings['clipboard'] = "none"
+            #print(settings['clipboard'])
+
     # Function to check dropdown text and update the settings dict with it
     def dropdown_state(self, text):
         settings['search_engine'] = text
@@ -224,7 +275,7 @@ class MainMenu(QtWidgets.QWidget):
   
     # If the snip button is clicked, TransparentOverlay class is called, that window is shown, and the menu window is hidden
     def on_b1_clicked(self):
-        self.window = TransparentOverlay()
+        self.window = SnippingOverlay()
         self.window.show()
         self.hide()
 
@@ -246,7 +297,8 @@ def main():
             'save': False,
             'search': False,
             'save_path': '',
-            'search_engine': 'Google'
+            'search_engine': 'Google',
+            'clipboard': 'none'
         }
 
     # Try/except structure to try opening settings file, call default settings if we can't even open the file
