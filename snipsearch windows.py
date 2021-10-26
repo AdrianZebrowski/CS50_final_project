@@ -9,7 +9,7 @@ import webbrowser
 import json
 import datetime
 
-# Special tesseract related line of code for windows version goes here
+# Special tesseract related line of code for windows version goes here (you need to point this thing to your tesseract installation, basically)
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract - OCR\tesseract.exe'
 
 # Function for taking screenshot using mss module, use a context here (memory management issues arise with mss otherwise, generally more pythonic too)
