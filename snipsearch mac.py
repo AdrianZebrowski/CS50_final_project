@@ -9,8 +9,8 @@ import webbrowser
 import json
 import datetime
 
-# Special tesseract related line of code for windows version goes here
-# pytesseract.pytesseract.tesseract_cmd = 'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'
+# Special tesseract related line of code for windows version goes here (you need to point this thing to your tesseract installation, basically)
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract - OCR\tesseract.exe'
 
 # Function for taking screenshot using mss module, use a context here (memory management issues arise with mss otherwise, generally more pythonic too)
 def Screenshot(bbox):
@@ -18,12 +18,10 @@ def Screenshot(bbox):
         im = sct.grab(bbox)
         return im
 
-# Define a class called snip, which takes a screenshot when provided with a bounding box, and then does several functions with it depending on some settings
-class Snip(QtWidgets.QWidget):
-    def __init__(self, bbox):
-        # Initialize superclass so we have access to its methods
-        super().__init__()
-        self.im = Screenshot(bbox)
+# Define a class called snipfunctions, which takes an image object as input and then manipulates it in a few useful ways
+class SnipFunctions():
+    def __init__(self, im):
+        self.im = im
 
     # Define a function for ocr (optical character recognition) using pytesseract
     def ocr(self):
@@ -57,9 +55,10 @@ class Snip(QtWidgets.QWidget):
         self.path = settings['save_path'] + 'screenshot_' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f") + '.png'
         mss.tools.to_png(self.im.rgb, self.im.size, output=self.path)
         return self
+        
 
 # Initialize a class to create a transparent overlay, on which I will draw selection boxes (like snipping tool in Windows)
-class TransparentOverlay(QtWidgets.QWidget):
+class SnippingOverlay(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         # Get that sweet cross cursor (again like snipping tool)
@@ -95,17 +94,20 @@ class TransparentOverlay(QtWidgets.QWidget):
     def mouseReleaseEvent(self, event):
         self.bbox = (self.left, self.top, self.right, self.bottom)
         self.setWindowOpacity(0)
+        self.im = Screenshot(self.bbox)
+
         if settings['save'] == True:
-            Snip(self.bbox).save()
+            SnipFunctions(self.im).save()
+
         if settings['search'] == True:
             if settings['search_engine'] == 'Google':
-                Snip(self.bbox).ocr().search_google()
+                SnipFunctions(self.im).ocr().search_google()
             if settings['search_engine'] == 'Bing':
-                Snip(self.bbox).ocr().search_bing()
+                SnipFunctions(self.im).ocr().search_bing()
             if settings['search_engine'] == 'Yahoo':
-                Snip(self.bbox).ocr().search_yahoo()
+                SnipFunctions(self.im).ocr().search_yahoo()
             if settings['search_engine'] == 'Wolfram Alpha':
-                Snip(self.bbox).ocr().search_wolfram()
+                SnipFunctions(self.im).ocr().search_wolfram()
 
         #print("Mouse released.")
         #print(self.end_point.x(), self.end_point.y())
@@ -224,7 +226,7 @@ class MainMenu(QtWidgets.QWidget):
   
     # If the snip button is clicked, TransparentOverlay class is called, that window is shown, and the menu window is hidden
     def on_b1_clicked(self):
-        self.window = TransparentOverlay()
+        self.window = SnippingOverlay()
         self.window.show()
         self.hide()
 
