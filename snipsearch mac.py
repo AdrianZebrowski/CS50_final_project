@@ -1,34 +1,26 @@
 # Import necessary modules
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
-import mss
-import mss.tools
 import pytesseract
-import numpy
 import webbrowser
 import json
 import datetime
+from PIL import ImageGrab
 
-# Special tesseract related line of code for windows version goes here (you need to point this thing to your tesseract installation, basically)
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract - OCR\tesseract.exe'
-
-# Function for taking screenshot using mss module, use a context here (memory management issues arise with mss otherwise, generally more pythonic too)
+# Function for taking screenshot using PIL module
 def Screenshot(bbox):
-    with mss.mss() as sct:
-        im = sct.grab(bbox)
-        return im
+    im = ImageGrab.grab(bbox)
+    return im
 
-# Define a class called snipfunctions, which takes an image object as input and then manipulates it in a few useful ways
+# Define a class called snipfunctions, which takes a PIL image object as input and then manipulates it in a few useful ways
 class SnipFunctions():
     def __init__(self, im):
         self.im = im
 
     # Define a function for ocr (optical character recognition) using pytesseract
     def ocr(self):
-        # Convert the image to RGB using some numpy array trickery (SOURCE: https://stackoverflow.com/questions/50588376/is-there-a-way-to-use-mss-and-pytesseract-witchout-saving-and-open)
-        self.im_rgb = numpy.flip(numpy.array(self.im, dtype=numpy.uint8)[:, :, :3], 2)
         # Convert the image to text via pytesseract ocr
-        self.ocr_text = pytesseract.image_to_string(self.im_rgb)
+        self.ocr_text = pytesseract.image_to_string(self.im)
         # Have the method return self so we can daisy chain it with the search and save methods below
         return self
 
@@ -53,9 +45,8 @@ class SnipFunctions():
     def save(self):
         # Create a path to save the file to, include a timestamp in the filename (also guarantees uniqueness)
         self.path = settings['save_path'] + 'screenshot_' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f") + '.png'
-        mss.tools.to_png(self.im.rgb, self.im.size, output=self.path)
+        self.im.save(self.path, 'PNG')
         return self
-        
 
 # Initialize a class to create a transparent overlay, on which I will draw selection boxes (like snipping tool in Windows)
 class SnippingOverlay(QtWidgets.QWidget):
@@ -75,7 +66,7 @@ class SnippingOverlay(QtWidgets.QWidget):
         self.end_point = QtCore.QPoint()
         self.start_point = QtCore.QPoint()
         # Declare variables for the boundaries of the selection box (make it 1x1 pixels initially, this prevents a bug where if no selection
-        # box is drawn the entire screen is captured and OCR'd)
+        # box is drawn the entire screen is captured and OCR'd - very slow!)
         self.left = 0
         self.right = 1
         self.top = 0
@@ -96,9 +87,11 @@ class SnippingOverlay(QtWidgets.QWidget):
         self.setWindowOpacity(0)
         self.im = Screenshot(self.bbox)
 
+        # Save the image if this setting is enabled
         if settings['save'] == True:
             SnipFunctions(self.im).save()
 
+        # Search the OCR'd text
         if settings['search'] == True:
             if settings['search_engine'] == 'Google':
                 SnipFunctions(self.im).ocr().search_google()
@@ -275,4 +268,5 @@ def main():
 if __name__ == '__main__':
     main()
 
-# TODO: Package this in an installer and try it out on different operating systems
+##### Partially inspired (at least as far as using PyQt5 as the base for the GUI) by https://github.com/harupy/snipping-tool
+##### I found at least one instance of someone else making a snipping tool that searched the internet, so I guess my idea isn't very original, but hey
