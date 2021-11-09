@@ -1,10 +1,7 @@
 # Import necessary modules
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
-import mss
-import mss.tools
 import pytesseract
-import numpy
 import webbrowser
 import json
 import datetime
@@ -12,15 +9,15 @@ from io import BytesIO
 import win32clipboard
 from PIL import ImageGrab
 
-# Special tesseract related line of code for windows version goes here (you need to point this thing to your tesseract installation, basically)
+# Tesseract related line of code for windows version goes here (you need to point this thing to your tesseract installation)
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract - OCR\tesseract.exe'
 
-# Function for taking screenshot using mss module, use a context here (memory management issues arise with mss otherwise, generally more pythonic too)
+# Function for taking screenshot using PIL module
 def Screenshot(bbox):
     im = ImageGrab.grab(bbox)
     return im
 
-# Define a class called snipfunctions, which takes an image object as input and then manipulates it in a few useful ways
+# Define a class called snipfunctions, which takes a PIL image object as input and then manipulates it in a few useful ways
 class SnipFunctions():
     def __init__(self, im):
         self.im = im
@@ -57,7 +54,6 @@ class SnipFunctions():
         return self
 
     # Windows-specific clipboard functions
-    #TODO: Implement clipboard functions for OCR text and for png image, depending on global settings
     def clip_image(self):
         # print("Clipped the image!")
         self.im_bytes = BytesIO()
@@ -96,7 +92,7 @@ class SnippingOverlay(QtWidgets.QWidget):
         self.end_point = QtCore.QPoint()
         self.start_point = QtCore.QPoint()
         # Declare variables for the boundaries of the selection box (make it 1x1 pixels initially, this prevents a bug where if no selection
-        # box is drawn the entire screen is captured and OCR'd)
+        # box is drawn the entire screen is captured and OCR'd - very slow!)
         self.left = 0
         self.right = 1
         self.top = 0
@@ -117,6 +113,7 @@ class SnippingOverlay(QtWidgets.QWidget):
         self.setWindowOpacity(0)
         self.im = Screenshot(self.bbox)
 
+        # Save the image if this setting is enabled
         if settings['save'] == True:
             SnipFunctions(self.im).save()
         
@@ -126,6 +123,7 @@ class SnippingOverlay(QtWidgets.QWidget):
         if settings['clipboard'] == "text":
             SnipFunctions(self.im).ocr().clip_text()
 
+        # Search the OCR'd text
         if settings['search'] == True:
             if settings['search_engine'] == 'Google':
                 SnipFunctions(self.im).ocr().search_google()
@@ -339,6 +337,5 @@ def main():
 if __name__ == '__main__':
     main()
 
-# TODO: Windows conversion
-# TODO: Add feature to put image or ocr'd text into clipboard for windows version
-# TODO: Package this in an installer and try it out on different operating systems
+##### Partially inspired (at least as far as using PyQt5 as the base for the GUI) by https://github.com/harupy/snipping-tool
+##### I found at least one instance of someone else making a snipping tool that searched the internet, so I guess my idea isn't very original, but hey
