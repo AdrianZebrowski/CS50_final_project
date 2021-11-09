@@ -207,7 +207,7 @@ class MainMenu(QtWidgets.QWidget):
     def dropdown_state(self, text):
         settings['search_engine'] = text
     
-    # Function to check the textbox state and update the save path in the settings dict with it, also ensures it ends with /
+    # Function to check the textbox state and update the save path in the settings dict with it
     def textbox_state(self):
         settings['save_path'] = self.textbox.text()
 
