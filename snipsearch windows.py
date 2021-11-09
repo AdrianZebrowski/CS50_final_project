@@ -49,7 +49,7 @@ class SnipFunctions():
     # Save function
     def save(self):
         # Create a path to save the file to, include a timestamp in the filename (also guarantees uniqueness)
-        self.path = settings['save_path'] + 'screenshot_' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f") + '.png'
+        self.path = settings['save_path'].rstrip("/") + "/" + 'screenshot_' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f") + '.png'
         self.im.save(self.path, 'PNG')
         return self
 
@@ -114,7 +114,7 @@ class SnippingOverlay(QtWidgets.QWidget):
         self.im = Screenshot(self.bbox)
 
         # Save the image if this setting is enabled
-        if settings['save'] == True:
+        if settings['save'] == True and settings['save_path'] != '':
             SnipFunctions(self.im).save()
         
         # Windows-specific call to clipboard functions 
@@ -277,7 +277,7 @@ class MainMenu(QtWidgets.QWidget):
     
     # Function to check the textbox state and update the save path in the settings dict with it, also ensures it ends with /
     def textbox_state(self):
-        settings['save_path'] = self.textbox.text().rstrip("/") + "/"
+        settings['save_path'] = self.textbox.text()
 
     # When the Browse button is clicked, open a filedialog (directory browser) and set the textbox value to whatever the user browses to
     def on_b2_clicked(self):
@@ -308,7 +308,7 @@ def main():
         settings = {
             'save': False,
             'search': False,
-            'save_path': '',
+            'save_path': 'C:\\',
             'search_engine': 'Google',
             'clipboard': 'none'
         }
