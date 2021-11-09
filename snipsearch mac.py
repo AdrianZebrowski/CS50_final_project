@@ -5,8 +5,6 @@ import pytesseract
 import webbrowser
 import json
 import datetime
-from io import BytesIO
-import win32clipboard
 from PIL import ImageGrab
 
 # Tesseract related line of code for windows version goes here (you need to point this thing to your tesseract installation)
