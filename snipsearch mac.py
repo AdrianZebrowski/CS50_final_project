@@ -7,9 +7,6 @@ import json
 import datetime
 from PIL import ImageGrab
 
-# Tesseract related line of code for windows version goes here (you need to point this thing to your tesseract installation)
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract - OCR\tesseract.exe'
-
 # Function for taking screenshot using PIL module
 def Screenshot(bbox):
     im = ImageGrab.grab(bbox)
