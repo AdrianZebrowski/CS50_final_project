@@ -8,15 +8,17 @@ import numpy
 import webbrowser
 import json
 import datetime
+from io import BytesIO
+import win32clipboard
+from PIL import ImageGrab
 
 # Special tesseract related line of code for windows version goes here (you need to point this thing to your tesseract installation, basically)
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract - OCR\tesseract.exe'
 
 # Function for taking screenshot using mss module, use a context here (memory management issues arise with mss otherwise, generally more pythonic too)
 def Screenshot(bbox):
-    with mss.mss() as sct:
-        im = sct.grab(bbox)
-        return im
+    im = ImageGrab.grab(bbox)
+    return im
 
 # Define a class called snipfunctions, which takes an image object as input and then manipulates it in a few useful ways
 class SnipFunctions():
@@ -25,10 +27,8 @@ class SnipFunctions():
 
     # Define a function for ocr (optical character recognition) using pytesseract
     def ocr(self):
-        # Convert the image to RGB using some numpy array trickery (SOURCE: https://stackoverflow.com/questions/50588376/is-there-a-way-to-use-mss-and-pytesseract-witchout-saving-and-open)
-        self.im_rgb = numpy.flip(numpy.array(self.im, dtype=numpy.uint8)[:, :, :3], 2)
         # Convert the image to text via pytesseract ocr
-        self.ocr_text = pytesseract.image_to_string(self.im_rgb)
+        self.ocr_text = pytesseract.image_to_string(self.im)
         # Have the method return self so we can daisy chain it with the search and save methods below
         return self
 
@@ -53,16 +53,30 @@ class SnipFunctions():
     def save(self):
         # Create a path to save the file to, include a timestamp in the filename (also guarantees uniqueness)
         self.path = settings['save_path'] + 'screenshot_' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f") + '.png'
-        mss.tools.to_png(self.im.rgb, self.im.size, output=self.path)
+        self.im.save(self.path, 'PNG')
         return self
 
     # Windows-specific clipboard functions
     #TODO: Implement clipboard functions for OCR text and for png image, depending on global settings
     def clip_image(self):
-        print("Clipped the image!")
+        # print("Clipped the image!")
+        self.im_bytes = BytesIO()
+        self.im.convert('RGB').save(self.im_bytes, 'BMP')
+        self.clip_data = self.im_bytes.getvalue()[14:]
+        self.im_bytes.close()
+
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(win32clipboard.CF_DIB, self.clip_data)
+        win32clipboard.CloseClipboard()
 
     def clip_text(self):
-        print("Clipped the text!")
+        # print("Clipped the text!")
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardText(self.ocr_text)
+        win32clipboard.CloseClipboard()
+        
 
 # Initialize a class to create a transparent overlay, on which I will draw selection boxes (like snipping tool in Windows)
 class SnippingOverlay(QtWidgets.QWidget):
@@ -110,7 +124,7 @@ class SnippingOverlay(QtWidgets.QWidget):
         if settings['clipboard'] == "image":
             SnipFunctions(self.im).clip_image()
         if settings['clipboard'] == "text":
-            SnipFunctions(self.im).clip_text()
+            SnipFunctions(self.im).ocr().clip_text()
 
         if settings['search'] == True:
             if settings['search_engine'] == 'Google':
